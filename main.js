@@ -26,23 +26,34 @@ var enemies;
 var hpBar;
 var enemySpeed = 50;
 var playerHP = 100;
-var enemyHP = 3;
-var maxEnemy = 10;
+var enemyHP = 2;
+var maxEnemy = 20;
 var currentNumEnemy = 0;
 var lastFired = 0;
 var bulletSpeed = 500;
 var playerDirection;
+var killCountText;
+var killCount = 0;
+var wakeup;
+var $this;
+
 
 function preload() {
   // load game assets
   // this.load.image('player', 'assets/player.png');
-  this.load.image('bullet', 'assets/sprites/aqua_ball.png');
+  this.load.image('bullet', 'assets/sprites/weapon/weapon_sword.png');
   this.load.spritesheet('player', 'assets/sprites/player/knight_idle_spritesheet.png', { frameWidth: 16, frameHeight: 16 });
   this.load.spritesheet('player-run', 'assets/sprites/player/knight_run_spritesheet.png', { frameWidth: 16, frameHeight: 16 });
   this.load.spritesheet('enemy', 'assets/sprites/enemy/goblin_run_spritesheet.png', { frameWidth: 16, frameHeight: 16 });
 }
 
 function create() {
+  $this = this;
+  wakeup = false;
+
+  killCountText = this.add.text(game.config.width - 10, 10, 'Kills: 0', { fontSize: '24px', fill: '#fff' });
+  killCountText.setOrigin(1, 0);
+
   this.anims.create({
       key: 'idle',
       frames: this.anims.generateFrameNumbers('player', { start: 0, end: 5 }),
@@ -85,9 +96,12 @@ function create() {
 }
 
 function update() {
+  killCountText.setText('Kills: ' + killCount);
 
   if (player.body.velocity.x === 0 && player.body.velocity.y === 0) {
     player.play('idle', true);
+  } else {
+    wakeup = true;
   }
 
   // move the player
@@ -122,10 +136,18 @@ function update() {
 
   // shoot bullets
   // if (this.input.activePointer.isDown) {
-  if (this.time.now > lastFired) {
+  if (this.time.now > lastFired && wakeup == true) {
     // this.sound.play('shootSound');
 
     var bullet = bullets.create(player.x, player.y, 'bullet');
+    bullet.setScale(1.5);
+    this.tweens.add({
+      targets: bullet,
+      rotation: bullet.rotation + 360, // spin 360 degrees
+      duration: 500, // in milliseconds
+      ease: 'Linear',
+      repeat: -1 // repeat indefinitely
+    });
 
     // set bullet velocity based on player direction
     if (playerDirection == 'left') {
@@ -166,15 +188,18 @@ function update() {
       bullet.destroy();
       enemy.destroy();
       currentNumEnemy -= 1;
+      killCount++;
     } else {
       bullet.destroy();
     }
   });
 
   // check for player-enemy collisions
-  this.physics.add.collider(player, enemies, function(player, enemy) {
+  this.physics.add.collider(player, enemies, (player, enemy) => {
     // playerHP -= 1;
-    takeDamage(1)
+    if (playerHP > 0) {
+      takeDamage(1);
+    }
   });
 
   bullets.getChildren().forEach(function(bullet) {
@@ -215,10 +240,34 @@ function takeDamage(damageAmount) {
   playerHP -= damageAmount;
   console.log(playerHP)
   if (playerHP <= 0) {
-    player.destroy();
+    // player.destroy();
+    gameOver();
   } else {
     hpBar.clear();
     hpBar.fillStyle(0xff0000, 1);
     hpBar.fillRect(10, 10, 2 * playerHP, 20);
   }
+}
+
+
+function gameOver() {
+  // Pause the game
+  $this.physics.pause();
+  // Create a game over text object
+  const gameOverText = $this.add.text(game.config.width / 2, game.config.height / 2, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
+  gameOverText.setOrigin(0.5);
+
+  // Set up a restart button
+  const restartButton = $this.add.text(game.config.width / 2, game.config.height / 2 + 100, 'Restart', { fontSize: '32px', fill: '#fff' });
+  restartButton.setOrigin(0.5);
+  restartButton.setInteractive({ useHandCursor: true });
+  restartButton.on('pointerdown', () => {
+    // Restart the game
+    $this.scene.restart();
+    // Reset the kill count and update the text
+    playerHP = 100;
+    currentNumEnemy = 0;
+    killCount = 0;
+    killCountText.setText('Kills: 0');
+  });
 }
