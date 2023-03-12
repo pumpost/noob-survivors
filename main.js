@@ -35,10 +35,18 @@ function preload() {
   // load game assets
   this.load.image('player', 'assets/player.png');
   this.load.image('bullet', 'assets/bullet.png');
-  this.load.image('enemy', 'assets/enemy.png');
+  // this.load.image('enemy', 'assets/enemy.png');
+  this.load.spritesheet('enemy', 'assets/sprites/metalslug_mummy37x45.png', { frameWidth: 37, frameHeight: 45 });
 }
 
 function create() {
+  this.anims.create({
+      key: 'walk',
+      frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 16 }),
+      frameRate: 10,
+      repeat: -1,
+  });
+
   // create game objects
   player = this.physics.add.sprite(400, 300, 'player');
   player.setCollideWorldBounds(true);
@@ -131,6 +139,11 @@ function update() {
 
   // Move enemies towards the player
   enemies.getChildren().forEach(function(enemy) {
+    if (player.x < enemy.x) {
+      enemy.setScale(-1, 1); // flip sprite horizontally
+    } else if (player.x > enemy.x) {
+      enemy.setScale(1, 1); // flip sprite back to original
+    }
     var angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
     enemy.setVelocity(Math.cos(angle) * enemySpeed, Math.sin(angle) * enemySpeed);
   });
@@ -142,6 +155,7 @@ function spawnEnemy() {
     var x = Phaser.Math.Between(0, game.config.width);
     var y = Phaser.Math.Between(0, game.config.height);
     var enemy = enemies.create(x, y, 'enemy');
+    enemy.play('walk', true);
     enemy.setVelocity(enemySpeed * Math.cos(Math.atan2(player.y - y, player.x - x)), enemySpeed * Math.sin(Math.atan2(player.y - y, player.x - x)));
     enemy.hp = enemyHP;
   }
