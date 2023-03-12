@@ -41,6 +41,15 @@ var $this;
 function preload() {
   // load game assets
   // this.load.image('player', 'assets/player.png');
+  this.load.image('floor1', 'assets/sprites/tile/floor_1.png');
+  this.load.image('floor2', 'assets/sprites/tile/floor_2.png');
+  this.load.image('floor3', 'assets/sprites/tile/floor_3.png');
+  this.load.image('floor4', 'assets/sprites/tile/floor_4.png');
+  this.load.image('floor5', 'assets/sprites/tile/floor_5.png');
+  this.load.image('floor6', 'assets/sprites/tile/floor_6.png');
+  this.load.image('floor7', 'assets/sprites/tile/floor_7.png');
+  this.load.image('floor8', 'assets/sprites/tile/floor_8.png');
+  this.load.image('floor9', 'assets/sprites/tile/floor_9.png');
   this.load.image('bullet', 'assets/sprites/weapon/weapon_sword.png');
   this.load.spritesheet('player', 'assets/sprites/player/knight_idle_spritesheet.png', { frameWidth: 16, frameHeight: 16 });
   this.load.spritesheet('player-run', 'assets/sprites/player/knight_run_spritesheet.png', { frameWidth: 16, frameHeight: 16 });
@@ -50,6 +59,21 @@ function preload() {
 function create() {
   $this = this;
   wakeup = false;
+
+  // create a new random data generator
+  let rand = new Phaser.Math.RandomDataGenerator();
+
+  // create an array of floor sprite keys
+  let floorSprites = ['floor1', 'floor2', 'floor3', 'floor4', 'floor5', 'floor6', 'floor7', 'floor8', 'floor9'];
+
+  // randomly choose a floor sprite key from the array
+  let floorSpriteKey = rand.pick(floorSprites);
+
+  let floor = this.add.tileSprite(0, 0, game.config.width, game.config.height, floorSpriteKey);
+  // set the tile position to the center of the screen
+  floor.setPosition(game.config.width / 2, game.config.height / 2);
+  // set the tile scale to fit the entire game world
+  floor.setScale(1);
 
   killCountText = this.add.text(game.config.width - 10, 10, 'Kills: 0', { fontSize: '24px', fill: '#fff' });
   killCountText.setOrigin(1, 0);
@@ -175,7 +199,7 @@ function update() {
     //   bullet.setVelocity(500 * Math.cos(player.rotation + angleOffset), 500 * Math.sin(player.rotation + angleOffset));
     // }
 
-    lastFired = this.time.now + 500;
+    lastFired = this.time.now + 350;
   }
     // var bullet = bullets.create(player.x, player.y, 'bullet');
     // bullet.setVelocity(1000 * Math.cos(player.rotation), 1000 * Math.sin(player.rotation));
