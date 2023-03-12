@@ -86,6 +86,10 @@ function create() {
 
 function update() {
 
+  if (player.body.velocity.x === 0 && player.body.velocity.y === 0) {
+    player.play('idle', true);
+  }
+
   // move the player
   if (cursors.left.isDown) {
     player.play('player-run', true);
@@ -99,18 +103,20 @@ function update() {
     playerDirection = 'right';
 
   } else {
-    player.play('idle', true);
+    // player.play('idle', true);
     player.setVelocityX(0);
   }
 
   if (cursors.up.isDown) {
+    player.play('player-run', true);
     player.setVelocityY(-200);
     playerDirection = 'up';
   } else if (cursors.down.isDown) {
+    player.play('player-run', true);
     player.setVelocityY(200);
     playerDirection = 'down';
   } else {
-    player.play('idle', true);
+    // player.play('idle', true);
     player.setVelocityY(0);
   }
 
@@ -197,7 +203,7 @@ function spawnEnemy() {
     var y = Phaser.Math.Between(0, game.config.height);
     var enemy = enemies.create(x, y, 'enemy');
     enemy.setScale(2);
-    enemy.setCollideWorldBounds(true);
+    // enemy.setCollideWorldBounds(true);
 
     enemy.play('walk', true);
     enemy.setVelocity(enemySpeed * Math.cos(Math.atan2(player.y - y, player.x - x)), enemySpeed * Math.sin(Math.atan2(player.y - y, player.x - x)));
