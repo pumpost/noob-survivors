@@ -16,6 +16,25 @@ class StartGameScene extends Phaser.Scene {
   }
 }
 
+class PauseScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'PauseScene', active: false });
+  }
+
+  create() {
+    // Add a resume button
+    this.resumeButton = this.add.text(400, 300, 'Resume', { fontSize: '32px', fill: '#fff' })
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.scene.stop();
+        this.scene.resume('MainGameScene');
+      });
+
+    // Set the position of the button
+    this.resumeButton.setOrigin(0.5);
+  }
+}
+
 class MainGameScene extends Phaser.Scene {
 
   player;
@@ -34,6 +53,8 @@ class MainGameScene extends Phaser.Scene {
   killCountText;
   killCount = 0;
   wakeup = false;
+  pauseBtn;
+  resumeBtn;
 
   constructor() {
     super({ key: 'MainGameScene' });
@@ -111,6 +132,18 @@ class MainGameScene extends Phaser.Scene {
     this.hpBar.fillStyle(0xff0000, 1);
     this.hpBar.fillRect(10, 10, 200, 20);
 
+    this.pauseBtn = this.add.text(this.game.config.width, this.game.config.height, 'Pause', { fontSize: '24px', fill: '#FFF' })
+    .setInteractive()
+    .on('pointerdown', () => {
+      this.pauseGame();
+    });
+
+    this.pauseBtn.setOrigin(1, 1);
+
+    this.events.on('resume', () => {
+      this.pauseBtn.visible = true;
+    });
+
     // create enemy spawn timer
     this.time.addEvent({ delay: 1000, callback: this.spawnEnemy, callbackScope: this, loop: true });
   }
@@ -171,7 +204,7 @@ class MainGameScene extends Phaser.Scene {
       } else if (this.playerDirection == 'up') {
         bullet.setVelocityX(0);
         bullet.setVelocityY(-this.bulletSpeed);
-      } else if (this.layerDirection == 'down') {
+      } else if (this.playerDirection == 'down') {
         bullet.setVelocityX(0);
         bullet.setVelocityY(this.bulletSpeed);
       } else {
@@ -251,6 +284,7 @@ class MainGameScene extends Phaser.Scene {
 
   gameOver() {
     // Pause the game
+    this.pauseBtn.visible = false;
     this.physics.pause();
     // Create a game over text object
     const gameOverText = this.add.text(this.game.config.width / 2, this.game.config.height / 2, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
@@ -265,10 +299,17 @@ class MainGameScene extends Phaser.Scene {
       this.scene.restart();
       // Reset the kill count and update the text
       this.playerHP = 100;
+      this.wakeup = false;
       this.currentNumEnemy = 0;
       this.killCount = 0;
       this.killCountText.setText('Kills: 0');
     });
+  }
+
+  pauseGame() {
+    this.scene.pause();
+    this.scene.launch('PauseScene');
+    this.pauseBtn.visible = false;
   }
 }
 
@@ -284,7 +325,7 @@ var config = {
       debug: false
     }
   },
-  scene: [StartGameScene, MainGameScene]
+  scene: [StartGameScene, MainGameScene, PauseScene]
 };
 
 new Phaser.Game(config);
