@@ -16,6 +16,57 @@ class StartGameScene extends Phaser.Scene {
   }
 }
 
+class LevelUpScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'LevelUpScene' });
+  }
+
+  preload() {
+    // load game assets
+    this.load.image('skill1', 'assets/sprites/skill/attack_speed_boost.png');
+    this.load.image('skill2', 'assets/sprites/tile/floor_2.png');
+    this.load.image('skill3', 'assets/sprites/tile/floor_2.png');
+  }
+
+  create() {
+
+    // create a text object and set its style
+    const text = this.add.text(300, 185, "increase attack speed", {
+      fontSize: "24px",
+      fill: "#ffffff",
+      backgroundColor: "#000"
+    });
+
+    // set the text object's background to transparent
+    // text.setPadding(0, 0, 0, 0);
+    // text.setBackgroundColor("rgba(0,0,0,0)");
+
+    // Add skill card images
+    this.add.image(260, 200, 'skill1').setScale(3).setInteractive().on('clicked', this.onSkillCardClicked, this);
+    // this.add.image(300, 300, 'skill2').setScale(3).setInteractive().on('clicked', this.onSkillCardClicked, this);
+    // this.add.image(300, 400, 'skill3').setScale(3).setInteractive().on('clicked', this.onSkillCardClicked, this);
+
+    // Add text
+    this.add.text(400, 100, 'Choose a skill to learn', { font: '32px Arial', fill: '#ffffff' }).setOrigin(0.5);
+
+    // Add input events for skill cards
+    this.input.on('gameobjectdown', function (pointer, gameObject)
+    {
+        gameObject.emit('clicked', gameObject);
+    }, this);
+  }
+
+  onSkillCardClicked(gameObject) {
+    this.scene.stop();
+    this.scene.resume('MainGameScene', {
+      action: 'levelup',
+      bulletSpeed: 500
+    });
+    // Handle skill card click event
+    // For example, you can save the selected skill to a variable and close the LevelUpScene
+  }
+}
+
 class PauseScene extends Phaser.Scene {
   constructor() {
     super({ key: 'PauseScene', active: false });
@@ -40,6 +91,7 @@ class MainGameScene extends Phaser.Scene {
   player;
   bullets;
   enemies;
+  hpBarFill;
   hpBar;
   cursors;
   enemySpeed = 50;
@@ -50,11 +102,16 @@ class MainGameScene extends Phaser.Scene {
   lastFired = 0;
   bulletSpeed = 500;
   playerDirection;
+  levelCountText;
   killCountText;
   killCount = 0;
   wakeup = false;
   pauseBtn;
   resumeBtn;
+  expBar;
+  expBarFill;
+  playerXP = 0;
+  playerLevel = 1;
 
   constructor() {
     super({ key: 'MainGameScene' });
@@ -93,7 +150,13 @@ class MainGameScene extends Phaser.Scene {
     // set the tile scale to fit the entire game world
     floor.setScale(1);
 
-    this.killCountText = this.add.text(this.game.config.width - 10, 10, 'Kills: 0', { fontSize: '24px', fill: '#fff' });
+    // this.killCountText = this.add.text(this.game.config.width - 10, 10, 'Kills: 0', { fontSize: '24px', fill: '#fff' });
+    // this.killCountText.setOrigin(1, 0);
+
+    this.levelCountText = this.add.text(this.game.config.width - 20, 10, 'Lv: 1', { fontSize: '16px', fill: '#fff' });
+    this.levelCountText.setOrigin(1, 0);
+
+    this.killCountText = this.add.text(this.game.config.width - 20, 40, 'Kills: 0', { fontSize: '16px', fill: '#fff' });
     this.killCountText.setOrigin(1, 0);
 
     this.anims.create({
@@ -128,9 +191,28 @@ class MainGameScene extends Phaser.Scene {
     // create keyboard input
     this.cursors = this.input.keyboard.createCursorKeys();
 
+    // Create a new graphics object
     this.hpBar = this.add.graphics();
-    this.hpBar.fillStyle(0xff0000, 1);
-    this.hpBar.fillRect(10, 10, 200, 20);
+
+    // Draw a background rectangle for the bar
+    this.hpBar.fillStyle(0x000000, 0.5);
+    this.hpBar.fillRect(10, 10, 200, 15);
+
+    this.hpBarFill = this.add.graphics();
+    this.hpBarFill.fillStyle(0xff0000, 1);
+    this.hpBarFill.fillRect(10, 10, 200, 15);
+
+    // Create a new graphics object
+    this.expBar = this.add.graphics();
+
+    // Draw a background rectangle for the bar
+    this.expBar.fillStyle(0x000000, 0.5);
+    this.expBar.fillRect(this.game.config.width/2 - 150, 10, 300, 5);
+
+    // Draw a rectangle for the fill
+    this.expBarFill = this.add.graphics();
+    this.expBarFill.fillStyle(0xffffff, 1);
+    this.expBarFill.fillRect(this.game.config.width/2 - 150, 10, 0, 5);
 
     this.pauseBtn = this.add.text(this.game.config.width, this.game.config.height, 'Pause', { fontSize: '24px', fill: '#FFF' })
     .setInteractive()
@@ -140,8 +222,11 @@ class MainGameScene extends Phaser.Scene {
 
     this.pauseBtn.setOrigin(1, 1);
 
-    this.events.on('resume', () => {
+    this.events.on('resume', (scene, data) => {
       this.pauseBtn.visible = true;
+      if (data.action == "levelup") {
+        this.bulletSpeed += data.bulletSpeed;
+      }
     });
 
     // create enemy spawn timer
@@ -149,6 +234,11 @@ class MainGameScene extends Phaser.Scene {
   }
 
   update() {
+
+    this.expBarFill.clear();
+    this.expBarFill.fillStyle(0xffffff, 1);
+    this.expBarFill.fillRect(this.game.config.width/2 - 150, 10, ((this.playerXP / (10 * this.playerLevel)) * 100) * 3, 5);
+
     this.killCountText.setText('Kills: ' + this.killCount);
 
     if (this.player.body.velocity.x === 0 && this.player.body.velocity.y === 0) {
@@ -223,6 +313,13 @@ class MainGameScene extends Phaser.Scene {
         enemy.destroy();
         this.currentNumEnemy -= 1;
         this.killCount++;
+        this.playerXP += 1;
+        console.log(this.playerXP);
+        if (this.playerXP >= (10 * this.playerLevel)) {
+          // Level up the player
+          console.log("level up!!");
+          this.levelUp();
+        }
       } else {
         bullet.destroy();
       }
@@ -276,9 +373,9 @@ class MainGameScene extends Phaser.Scene {
       // player.destroy();
       this.gameOver();
     } else {
-      this.hpBar.clear();
-      this.hpBar.fillStyle(0xff0000, 1);
-      this.hpBar.fillRect(10, 10, 2 * this.playerHP, 20);
+      this.hpBarFill.clear();
+      this.hpBarFill.fillStyle(0xff0000, 1);
+      this.hpBarFill.fillRect(10, 10, 2 * this.playerHP, 15);
     }
   }
 
@@ -311,6 +408,16 @@ class MainGameScene extends Phaser.Scene {
     this.scene.launch('PauseScene');
     this.pauseBtn.visible = false;
   }
+
+  levelUp() {
+    this.playerXP = 0;
+    this.playerLevel++;
+    this.levelCountText.setText('Lv: ' + this.playerLevel);
+
+    this.scene.pause();
+    this.scene.launch('LevelUpScene');
+  }
+
 }
 
 // initialize the game
@@ -325,7 +432,7 @@ var config = {
       debug: false
     }
   },
-  scene: [StartGameScene, MainGameScene, PauseScene]
+  scene: [StartGameScene, MainGameScene, LevelUpScene, PauseScene]
 };
 
 new Phaser.Game(config);
