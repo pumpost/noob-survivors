@@ -23,15 +23,21 @@ class LevelUpScene extends Phaser.Scene {
 
   preload() {
     // load game assets
-    this.load.image('skill1', 'assets/sprites/skill/attack_speed_boost.png');
-    this.load.image('skill2', 'assets/sprites/tile/floor_2.png');
+    this.load.image('skill1', 'assets/sprites/skill/attack_boost.png');
+    this.load.image('skill2', 'assets/sprites/skill/attack_speed_boost.png');
     this.load.image('skill3', 'assets/sprites/tile/floor_2.png');
   }
 
   create() {
 
     // create a text object and set its style
-    const text = this.add.text(300, 185, "increase attack speed", {
+    this.add.text(300, 185, "increase attack range", {
+      fontSize: "24px",
+      fill: "#ffffff",
+      backgroundColor: "#000"
+    });
+
+    this.add.text(300, 285, "increase attack speed", {
       fontSize: "24px",
       fill: "#ffffff",
       backgroundColor: "#000"
@@ -42,8 +48,8 @@ class LevelUpScene extends Phaser.Scene {
     // text.setBackgroundColor("rgba(0,0,0,0)");
 
     // Add skill card images
-    this.add.image(260, 200, 'skill1').setScale(3).setInteractive().on('clicked', this.onSkillCardClicked, this);
-    // this.add.image(300, 300, 'skill2').setScale(3).setInteractive().on('clicked', this.onSkillCardClicked, this);
+    this.add.image(260, 200, 'skill1').setScale(3).setInteractive().setData('skill', {bulletDuration: 200}).on('clicked', this.onSkillCardClicked, this);
+    this.add.image(260, 300, 'skill2').setScale(3).setInteractive().setData('skill', {atkCooldown: 50}).on('clicked', this.onSkillCardClicked, this);
     // this.add.image(300, 400, 'skill3').setScale(3).setInteractive().on('clicked', this.onSkillCardClicked, this);
 
     // Add text
@@ -52,15 +58,16 @@ class LevelUpScene extends Phaser.Scene {
     // Add input events for skill cards
     this.input.on('gameobjectdown', function (pointer, gameObject)
     {
-        gameObject.emit('clicked', gameObject);
+      gameObject.emit('clicked', gameObject);
     }, this);
   }
 
   onSkillCardClicked(gameObject) {
+    const skill = gameObject.getData('skill');
     this.scene.stop();
     this.scene.resume('MainGameScene', {
       action: 'levelup',
-      bulletSpeed: 500
+      ...skill
     });
     // Handle skill card click event
     // For example, you can save the selected skill to a variable and close the LevelUpScene
@@ -100,7 +107,9 @@ class MainGameScene extends Phaser.Scene {
   maxEnemy = 20;
   currentNumEnemy = 0;
   lastFired = 0;
+  attackCooldown = 350;
   bulletSpeed = 500;
+  bulletDuration = 200;
   playerDirection;
   levelCountText;
   killCountText;
@@ -136,6 +145,7 @@ class MainGameScene extends Phaser.Scene {
 
   create() {
     // create a new random data generator
+
     const rand = new Phaser.Math.RandomDataGenerator();
 
     // create an array of floor sprite keys
@@ -225,7 +235,11 @@ class MainGameScene extends Phaser.Scene {
     this.events.on('resume', (scene, data) => {
       this.pauseBtn.visible = true;
       if (data.action == "levelup") {
-        this.bulletSpeed += data.bulletSpeed;
+        if (data.bulletDuration) {
+          this.bulletDuration += data.bulletDuration;
+        } else if (data.atkCooldown) {
+          this.attackCooldown -= data.atkCooldown;
+        }
       }
     });
 
@@ -282,9 +296,15 @@ class MainGameScene extends Phaser.Scene {
       this.tweens.add({
         targets: bullet,
         rotation: bullet.rotation + 360, // spin 360 degrees
-        duration: 500, // in milliseconds
+        duration: 250, // in milliseconds
         ease: 'Linear',
         repeat: -1 // repeat indefinitely
+      });
+      this.time.addEvent({
+        delay: this.bulletDuration,
+        callback: () => {
+          bullet.destroy();
+        }
       });
 
       // set bullet velocity based on player direction
@@ -302,7 +322,7 @@ class MainGameScene extends Phaser.Scene {
         bullet.setVelocityY(0);
       }
 
-      this.lastFired = this.time.now + 350;
+      this.lastFired = this.time.now + this.attackCooldown;
     }
 
     // check for bullet-enemy collisions
@@ -314,7 +334,6 @@ class MainGameScene extends Phaser.Scene {
         this.currentNumEnemy -= 1;
         this.killCount++;
         this.playerXP += 1;
-        console.log(this.playerXP);
         if (this.playerXP >= (10 * this.playerLevel)) {
           // Level up the player
           console.log("level up!!");
@@ -368,7 +387,6 @@ class MainGameScene extends Phaser.Scene {
 
   takeDamage() {
     this.playerHP -= 1;
-    console.log(this.playerHP)
     if (this.playerHP <= 0) {
       // player.destroy();
       this.gameOver();
@@ -399,6 +417,10 @@ class MainGameScene extends Phaser.Scene {
       this.wakeup = false;
       this.currentNumEnemy = 0;
       this.killCount = 0;
+      this.attackCooldown = 350;
+      this.bulletDuration = 200;
+      this.playerLevel = 1;
+      this.playerXP = 0;
       this.killCountText.setText('Kills: 0');
     });
   }
