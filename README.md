@@ -1,6 +1,6 @@
 # noob-survivors
 
-javascript game created with phaser
+javascript game created by phaser
 
 try for fun!!
 
